@@ -1,0 +1,96 @@
+@startuml
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Utilisateur" as U
+participant "Système\nNutriMeal" as SYS
+participant "Commande" as CMD
+participant "Paiement" as PAY
+participant "Banque" as B
+participant "Livraison" as LIV
+actor "Livreur" as L
+
+== Recherche & Sélection ==
+U -> SYS : rechercherRepas(critere)
+SYS --> U : List<Repas>
+U -> SYS : consulterDetailsRepas(repas)
+SYS --> U : détails + calories + prix
+
+== Composition du menu ==
+U -> SYS : composerMenu(repas)
+SYS -> SYS : calculerTotalCalories()
+SYS --> U : menu + total calories
+
+== Passage de commande ==
+U -> CMD : passerCommande(menu, adresseLivraison)
+CMD -> CMD : calculerMontant()
+CMD --> U : récapitulatif commande\nstatut = EN_ATTENTE_PAIEMENT
+
+== Vérification du solde ==
+U -> PAY : effectuerPaiement(montant, carte)
+PAY -> B : verifierSolde(compte)
+B --> PAY : solde disponible
+
+alt solde >= prix du repas
+
+    == Paiement par carte ==
+    PAY -> B : validerTransaction(PaiementCarte)
+
+    alt Paiement accepté par la banque
+        B --> PAY : transaction validée
+        PAY -> CMD : confirmerPaiement()
+        CMD -> CMD : mettreAJourStatut(PAYEE)
+        CMD --> U : confirmation paiement 
+
+        == Livraison ==
+        CMD -> LIV : genererLivraison()
+        LIV -> LIV : demarrer()
+        LIV -> CMD : mettreAJourStatut(EN_COURS_LIVRAISON)
+        LIV --> U : livraison en cours 
+
+        L -> LIV : validerLivraison()
+        LIV -> CMD : mettreAJourStatut(LIVREE)
+        LIV --> U : commande livrée ✓
+
+    else Paiement refusé par la banque
+        B --> PAY : transaction refusée
+        PAY -> CMD : annulerPaiement()
+        CMD -> CMD : mettreAJourStatut(ANNULEE)
+        CMD --> U : paiement refusé 
+    end
+
+else solde < prix du repas
+
+    == Solde insuffisant ==
+    B --> PAY : solde insuffisant 
+    PAY --> U : Erreur : solde bancaire insuffisant\npour régler ce repas
+
+    == Bascule vers paiement en espèces ==
+    PAY --> U : Veuillez payer en espèces à la livraison
+    U -> PAY : choisirPaiementEspeces(montant)
+    PAY -> PAY : calculerRendu(montantRecu)
+    PAY --> U : montant à préparer confirmé
+
+    PAY -> CMD : confirmerPaiement()
+    CMD -> CMD : mettreAJourStatut(PAYEE)
+    CMD --> U : commande confirmée ✓\npaiement espèces à la livraison
+
+    == Livraison ==
+    CMD -> LIV : genererLivraison()
+    LIV -> LIV : demarrer()
+    LIV -> CMD : mettreAJourStatut(EN_COURS_LIVRAISON)
+    LIV --> U : livraison en cours 
+
+    L -> U : réclamer paiement espèces
+    U -> L : remettre montant en espèces
+    L -> PAY : validerPaiementEspeces(montantRecu)
+    PAY -> PAY : calculerRendu()
+    L --> U : rendre la monnaie si nécessaire
+
+    L -> LIV : validerLivraison()
+    LIV -> CMD : mettreAJourStatut(LIVREE)
+    LIV --> U : commande livrée 
+
+end
+
+@enduml

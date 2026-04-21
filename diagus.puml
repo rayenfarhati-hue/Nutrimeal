@@ -1,0 +1,94 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Utilisateur" as U
+actor "Sportif" as S
+actor "Administrateur" as A
+actor "NutriVigilant" as P
+actor "Livreur" as L
+actor "Banque" as B
+
+U <|-- P
+U <|-- S
+
+rectangle "Système NutriMeal" {
+
+    ' Contrainte médicale (NutriVigilant)
+    (Filtrer par contrainte médicale) as UC20
+    UC20 ..> (Vérifier teneur sel/sucre) : <<include>>
+    P -- UC20
+
+    ' Authentification
+    (S'inscrire) as UC1
+    (Se connecter) as UC2
+    UC2 ..> UC1 : <<extend>>
+    note on link: si pas de compte
+
+    ' Recherche & Filtrage
+    (Rechercher un repas) as UC3
+    (Filtrer par budget économique) as UC4
+    UC3 <.. UC4 : <<extend>>
+
+    ' Consultation
+    (Consulter les détails d'un repas) as UC5
+
+    ' Calculateur Nutritionnel
+    (Composer un menu complet) as UC6
+    (Calculer le total des calories) as UC7
+    (Accéder au mode sportif) as UC13
+    UC6 ..> UC7 : <<include>>
+    UC6 ..> UC13 : <<include>>
+
+    ' Gestion du catalogue
+    (Ajouter un nouveau repas) as UC8
+    (Modifier un repas existant) as UC9
+    (Associer des calories à un plat) as UC10
+    UC8 ..> UC10 : <<include>>
+
+    ' Administration
+    (Consulter les statistiques d'utilisation) as UC11
+    (Gérer les comptes utilisateurs) as UC12
+
+    ' Livraison
+    (Consulter les livraisons à effectuer) as UC14
+    (Mettre à jour le statut de la livraison) as UC15
+    (Suivre ma livraison) as UC19
+
+    ' Paiement
+    (Effectuer un paiement) as UC16
+    (Payer par carte bancaire) as UC17
+    (Payer en espèces) as UC18
+    UC16 <|-- UC17
+    UC16 <|-- UC18
+    UC17 -- B
+
+    ' Validation livraison après paiement
+    (Valider la commande comme livrée) as UC21
+    UC21 ..> UC16 : <<include>>
+    note on link: déclenchée après paiement confirmé
+}
+
+' Interactions Utilisateur
+U -- UC1
+U -- UC2
+U -- UC3
+U -- UC5
+U -- UC16
+U -- UC19
+
+' Interactions Sportif
+S -- UC13
+
+' Interactions Administrateur
+A -- UC8
+A -- UC9
+A -- UC11
+A -- UC12
+
+' Interactions Livreur
+L -- UC14
+L -- UC15
+L -- UC21
+
+@enduml

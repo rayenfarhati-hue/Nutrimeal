@@ -1,0 +1,176 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+' ─────────────── UTILISATEURS ───────────────
+abstract class Utilisateur {
+    - id : int
+    - nom : String
+    - email : String
+    - motDePasse : String
+    - telephone : String
+    + sInscrire() : void
+    + seConnecter() : boolean
+    + rechercherRepas(critere : String) : List<Repas>
+    + consulterDetailsRepas(repas : Repas) : void
+    + suivreLivraison(commande : Commande) : Statut
+}
+
+class Sportif {
+    - objectifCalorique : int
+    - typeActivite : String
+    + accederModeSportif() : void
+    + calculerBesoinsCalorique() : int
+}
+
+class NutriVigilant {
+    - contraintesMedicales : List<String>
+    - allergies : List<String>
+    + filtrerParContrainteMedicale() : List<Repas>
+    + verifierTeneurSelSucre(repas : Repas) : boolean
+}
+
+class Administrateur {
+    - niveau : String
+    + ajouterRepas(repas : Repas) : void
+    + modifierRepas(repas : Repas) : void
+    + consulterStatistiques() : Statistiques
+    + gererCompteUtilisateur(u : Utilisateur) : void
+}
+
+class Livreur {
+    - vehicule : String
+    - zoneGeographique : String
+    + consulterLivraisons() : List<Commande>
+    + mettreAJourStatut(commande : Commande, statut : Statut) : void
+    + validerCommandeLivree(commande : Commande) : void
+}
+
+' ─────────────── REPAS & CATALOGUE ───────────────
+class Repas {
+    - id : int
+    - nom : String
+    - description : String
+    - prix : double
+    - calories : int
+    - categorieNutritionnelle : String
+    - disponible : boolean
+    + associerCalories(calories : int) : void
+    + filtrerParBudget(budget : double) : boolean
+    + getDetailsNutritionnels() : Map<String, Double>
+}
+
+class Ingredient {
+    - id : int
+    - nom : String
+    - teneurSel : double
+    - teneurSucre : double
+    - calories : int
+    + getInfoNutritionnelle() : Map<String, Double>
+}
+
+class Menu {
+    - id : int
+    - nom : String
+    - totalCalories : int
+    + composerMenu(repas : List<Repas>) : void
+    + calculerTotalCalories() : int
+    + getRepas() : List<Repas>
+}
+
+class Statistiques {
+    - periode : String
+    - nbCommandesTotales : int
+    - repasLesPlusCommandes : List<Repas>
+    - chiffreAffaires : double
+    + genererRapport() : String
+}
+
+' ─────────────── COMMANDE & LIVRAISON ───────────────
+class Commande {
+    - id : int
+    - dateCommande : Date
+    - adresseLivraison : String
+    - statut : Statut
+    - montantTotal : double
+    + calculerMontant() : double
+    + mettreAJourStatut(statut : Statut) : void
+    + getStatut() : Statut
+}
+
+enum Statut {
+    EN_ATTENTE_PAIEMENT
+    PAYEE
+    EN_PREPARATION
+    EN_COURS_LIVRAISON
+    LIVREE
+    ANNULEE
+}
+
+class Livraison {
+    - id : int
+    - dateDebut : Date
+    - dateFin : Date
+    - statut : Statut
+    + demarrer() : void
+    + validerLivraison() : void
+    + mettreAJourStatut(statut : Statut) : void
+}
+
+' ─────────────── PAIEMENT ───────────────
+abstract class Paiement {
+    - id : int
+    - montant : double
+    - datePaiement : Date
+    - statut : String
+    + effectuerPaiement() : boolean
+    + confirmerPaiement() : void
+    + annulerPaiement() : void
+}
+
+class PaiementCarte {
+    - numeroCarte : String
+    - dateExpiration : String
+    - cvv : String
+    - nomTitulaire : String
+    + effectuerPaiement() : boolean
+    + validerAupressBanque() : boolean
+}
+
+class PaiementEspeces {
+    - montantRecu : double
+    - montantRendu : double
+    + effectuerPaiement() : boolean
+    + calculerRendu() : double
+}
+
+class Banque {
+    - nom : String
+    - codeSwift : String
+    + validerTransaction(paiement : PaiementCarte) : boolean
+    + remboursement(paiement : PaiementCarte) : boolean
+}
+
+' ─────────────── HÉRITAGE ───────────────
+Utilisateur <|-- Sportif
+Utilisateur <|-- NutriVigilant
+Utilisateur <|-- Administrateur
+Utilisateur <|-- Livreur
+Paiement <|-- PaiementCarte
+Paiement <|-- PaiementEspeces
+
+' ─────────────── ASSOCIATIONS ───────────────
+Utilisateur "1" -- "0..*" Commande : passe >
+Commande "1" *-- "1..*" Repas : contient >
+Commande "1" -- "1" Paiement : est réglée par >
+Commande "1" -- "1" Livraison : génère >
+Livraison "0..*" -- "1" Livreur : est effectuée par >
+Repas "1..*" *-- "1..*" Ingredient : est composé de >
+Repas "1..*" --o "0..*" Menu : fait partie de >
+Administrateur "1" -- "0..*" Repas : gère >
+Administrateur "1" -- "1" Statistiques : consulte >
+PaiementCarte "0..*" -- "1" Banque : validée par >
+Commande "1" -- "1" Statut : possède >
+Livraison "1" -- "1" Statut : possède >
+
+@enduml
